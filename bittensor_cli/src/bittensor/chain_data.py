@@ -751,13 +751,12 @@ class DynamicInfo(InfoBase):
         pending_root_emission = Balance.from_rao(
             decoded.get("pending_root_emission")
         ).set_unit(0)
-        price = (
-            Balance.from_tao(1.0)
-            if netuid == 0
-            else Balance.from_tao(tao_in.tao / alpha_in.tao)
-            if alpha_in.tao > 0
-            else Balance.from_tao(1)
-        )  # TODO: Patching this temporarily for netuid 0
+        if not is_dynamic:
+            price = Balance.from_tao(1.0)
+        elif alpha_in.tao > 0:
+            price = Balance.from_tao(tao_in.tao / alpha_in.tao)
+        else:
+            price = Balance.from_tao(1.0)
 
         if decoded.get("subnet_identity"):
             subnet_identity = SubnetIdentity.from_any(decoded.get("subnet_identity"))
