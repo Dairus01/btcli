@@ -431,6 +431,51 @@ class Options:
         help=f"If set along with [{COLORS.G.ARG}]--proxy[/{COLORS.G.ARG}], will not actually make the extrinsic call, "
         f"but rather just announce it to be made later.",
     )
+    pow_register_processors = typer.Option(
+        None,
+        "--processors",
+        help="Number of processors to use for proof of work (POW) registration.",
+    )
+    pow_register_update_interval = typer.Option(
+        None,
+        "--update-interval",
+        "-u",
+        help="The number of nonces to process before checking for next block during registration",
+    )
+    pow_register_output_in_place = typer.Option(
+        None,
+        "--output-in-place",
+        help="Whether to output the registration statistics in-place.",
+    )
+    pow_register_verbose = typer.Option(
+        None,
+        "--verbose",
+        "-v",
+        help="Whether to output the registration statistics verbosely.",
+    )
+    pow_register_use_cuda = typer.Option(
+        None,
+        "--use-cuda/--no-use-cuda",
+        "--cuda/--no-cuda",
+        help="Set flag to use CUDA for proof of work (POW) registration.",
+    )
+    pow_register_dev_id = typer.Option(
+        None,
+        "--dev-id",
+        "-d",
+        help="Set the CUDA device id(s) in the order of speed, where 0 is the fastest.",
+    )
+    pow_register_threads_per_block = typer.Option(
+        None,
+        "--threads-per-block",
+        "-tbp",
+        help="Set the number of threads per block for CUDA.",
+    )
+    faucet_max_successes = typer.Option(
+        None,
+        "--max-successes",
+        help="Set the maximum number of times to successfully run the faucet for this command.",
+    )
 
 
 def list_prompt(init_var: list, list_type: type, help_text: str) -> list:
@@ -780,6 +825,14 @@ class CLIManager:
             "safe_staking": True,
             "allow_partial_stake": False,
             "dashboard_path": None,
+            "pow_register_processors": None,
+            "pow_register_update_interval": None,
+            "pow_register_output_in_place": None,
+            "pow_register_verbose": None,
+            "pow_register_use_cuda": None,
+            "pow_register_dev_id": None,
+            "pow_register_threads_per_block": None,
+            "faucet_max_successes": None,
             # Commenting this out as this needs to get updated
             # "metagraph_cols": {
             #     "UID": True,
@@ -1662,6 +1715,20 @@ class CLIManager:
             show_default=False,
         ),
         dashboard_path: Optional[str] = Options.dashboard_path,
+        pow_register_processors: Optional[int] = Options.pow_register_processors,
+        pow_register_update_interval: Optional[
+            int
+        ] = Options.pow_register_update_interval,
+        pow_register_output_in_place: Optional[
+            bool
+        ] = Options.pow_register_output_in_place,
+        pow_register_verbose: Optional[bool] = Options.pow_register_verbose,
+        pow_register_use_cuda: Optional[bool] = Options.pow_register_use_cuda,
+        pow_register_dev_id: Optional[int] = Options.pow_register_dev_id,
+        pow_register_threads_per_block: Optional[
+            int
+        ] = Options.pow_register_threads_per_block,
+        faucet_max_successes: Optional[int] = Options.faucet_max_successes,
     ):
         """
         Sets or updates configuration values in the BTCLI config file.
@@ -1693,8 +1760,24 @@ class CLIManager:
             "safe_staking": safe_staking,
             "allow_partial_stake": allow_partial_stake,
             "dashboard_path": dashboard_path,
+            "pow_register_processors": pow_register_processors,
+            "pow_register_update_interval": pow_register_update_interval,
+            "pow_register_output_in_place": pow_register_output_in_place,
+            "pow_register_verbose": pow_register_verbose,
+            "pow_register_use_cuda": pow_register_use_cuda,
+            "pow_register_dev_id": pow_register_dev_id,
+            "pow_register_threads_per_block": pow_register_threads_per_block,
+            "faucet_max_successes": faucet_max_successes,
         }
-        bools = ["use_cache", "disk_cache", "safe_staking", "allow_partial_stake"]
+        bools = [
+            "use_cache",
+            "disk_cache",
+            "safe_staking",
+            "allow_partial_stake",
+            "pow_register_output_in_place",
+            "pow_register_verbose",
+            "pow_register_use_cuda",
+        ]
         if all(v is None for v in args.values()):
             # Print existing configs
             self.get_config()
@@ -1801,6 +1884,20 @@ class CLIManager:
         ),
         all_items: bool = typer.Option(False, "--all"),
         dashboard_path: Optional[str] = Options.dashboard_path,
+        pow_register_processors: bool = typer.Option(False, "--processors"),
+        pow_register_update_interval: bool = typer.Option(
+            False, "--update-interval", "-u"
+        ),
+        pow_register_output_in_place: bool = typer.Option(False, "--output-in-place"),
+        pow_register_verbose: bool = typer.Option(False, "--verbose", "-v"),
+        pow_register_use_cuda: bool = typer.Option(
+            False, "--use-cuda/--no-use-cuda", "--cuda/--no-cuda"
+        ),
+        pow_register_dev_id: bool = typer.Option(False, "--dev-id", "-d"),
+        pow_register_threads_per_block: bool = typer.Option(
+            False, "--threads-per-block", "-tbp"
+        ),
+        faucet_max_successes: bool = typer.Option(False, "--max-successes"),
     ):
         """
         Clears the fields in the config file and sets them to 'None'.
@@ -1833,6 +1930,14 @@ class CLIManager:
             "safe_staking": safe_staking,
             "allow_partial_stake": allow_partial_stake,
             "dashboard_path": dashboard_path,
+            "pow_register_processors": pow_register_processors,
+            "pow_register_update_interval": pow_register_update_interval,
+            "pow_register_output_in_place": pow_register_output_in_place,
+            "pow_register_verbose": pow_register_verbose,
+            "pow_register_use_cuda": pow_register_use_cuda,
+            "pow_register_dev_id": pow_register_dev_id,
+            "pow_register_threads_per_block": pow_register_threads_per_block,
+            "faucet_max_successes": faucet_max_successes,
         }
 
         # If no specific argument is provided, iterate over all
@@ -2814,51 +2919,14 @@ class CLIManager:
         wallet_path: Optional[str] = Options.wallet_path,
         wallet_hotkey: Optional[str] = Options.wallet_hotkey,
         network: Optional[list[str]] = Options.network,
-        # TODO add the following to config
-        processors: Optional[int] = typer.Option(
-            defaults.pow_register.num_processes,
-            "--processors",
-            help="Number of processors to use for proof of work (POW) registration.",
-        ),
-        update_interval: Optional[int] = typer.Option(
-            defaults.pow_register.update_interval,
-            "--update-interval",
-            "-u",
-            help="The number of nonces to process before checking for next block during registration",
-        ),
-        output_in_place: Optional[bool] = typer.Option(
-            defaults.pow_register.output_in_place,
-            help="Whether to output the registration statistics in-place.",
-        ),
-        verbose: Optional[bool] = typer.Option(  # TODO verbosity handler
-            defaults.pow_register.verbose,
-            "--verbose",
-            "-v",
-            help="Whether to output the registration statistics verbosely.",
-        ),
-        use_cuda: Optional[bool] = typer.Option(
-            defaults.pow_register.cuda.use_cuda,
-            "--use-cuda/--no-use-cuda",
-            "--cuda/--no-cuda",
-            help="Set flag to use CUDA for proof of work (POW) registration.",
-        ),
-        dev_id: Optional[int] = typer.Option(
-            defaults.pow_register.cuda.dev_id,
-            "--dev-id",
-            "-d",
-            help="Set the CUDA device id(s) in the order of speed, where 0 is the fastest.",
-        ),
-        threads_per_block: Optional[int] = typer.Option(
-            defaults.pow_register.cuda.tpb,
-            "--threads-per-block",
-            "-tbp",
-            help="Set the number of threads per block for CUDA.",
-        ),
-        max_successes: Optional[int] = typer.Option(
-            3,
-            "--max-successes",
-            help="Set the maximum number of times to successfully run the faucet for this command.",
-        ),
+        processors: Optional[int] = Options.pow_register_processors,
+        update_interval: Optional[int] = Options.pow_register_update_interval,
+        output_in_place: Optional[bool] = Options.pow_register_output_in_place,
+        verbose: Optional[bool] = Options.pow_register_verbose,
+        use_cuda: Optional[bool] = Options.pow_register_use_cuda,
+        dev_id: Optional[int] = Options.pow_register_dev_id,
+        threads_per_block: Optional[int] = Options.pow_register_threads_per_block,
+        max_successes: Optional[int] = Options.faucet_max_successes,
         prompt: bool = Options.prompt,
     ):
         """
@@ -2880,6 +2948,56 @@ class CLIManager:
         [bold]Note[/bold]: This command is meant for used in local environments where users can experiment with the blockchain without using real TAO tokens. Users must have the necessary hardware setup, especially when opting for CUDA-based GPU calculations. It is currently disabled on testnet and mainnet (finney). You can only use this command on a local blockchain.
         """
         # TODO should we add json_output?
+        # Resolve values from config or defaults if not provided
+        if processors is None:
+            processors = (
+                self.config.get("pow_register_processors")
+                if self.config.get("pow_register_processors") is not None
+                else defaults.pow_register.num_processes
+            )
+        if update_interval is None:
+            update_interval = (
+                self.config.get("pow_register_update_interval")
+                if self.config.get("pow_register_update_interval") is not None
+                else defaults.pow_register.update_interval
+            )
+        if output_in_place is None:
+            output_in_place = (
+                self.config.get("pow_register_output_in_place")
+                if self.config.get("pow_register_output_in_place") is not None
+                else defaults.pow_register.output_in_place
+            )
+        if verbose is None:
+            verbose = (
+                self.config.get("pow_register_verbose")
+                if self.config.get("pow_register_verbose") is not None
+                else defaults.pow_register.verbose
+            )
+        if use_cuda is None:
+            use_cuda = (
+                self.config.get("pow_register_use_cuda")
+                if self.config.get("pow_register_use_cuda") is not None
+                else defaults.pow_register.cuda.use_cuda
+            )
+        if dev_id is None:
+            dev_id = (
+                self.config.get("pow_register_dev_id")
+                if self.config.get("pow_register_dev_id") is not None
+                else defaults.pow_register.cuda.dev_id
+            )
+        if threads_per_block is None:
+            threads_per_block = (
+                self.config.get("pow_register_threads_per_block")
+                if self.config.get("pow_register_threads_per_block") is not None
+                else defaults.pow_register.cuda.tpb
+            )
+        if max_successes is None:
+            max_successes = (
+                self.config.get("faucet_max_successes")
+                if self.config.get("faucet_max_successes") is not None
+                else 3
+            )
+
         wallet = self.wallet_ask(
             wallet_name,
             wallet_path,
@@ -7317,46 +7435,13 @@ class CLIManager:
         wallet_hotkey: Optional[str] = Options.wallet_hotkey,
         network: Optional[list[str]] = Options.network,
         netuid: int = Options.netuid,
-        # TODO add the following to config
-        processors: Optional[int] = typer.Option(
-            defaults.pow_register.num_processes,
-            "--processors",
-            help="Number of processors to use for POW registration.",
-        ),
-        update_interval: Optional[int] = typer.Option(
-            defaults.pow_register.update_interval,
-            "--update-interval",
-            "-u",
-            help="The number of nonces to process before checking for the next block during registration",
-        ),
-        output_in_place: Optional[bool] = typer.Option(
-            defaults.pow_register.output_in_place,
-            help="Whether to output the registration statistics in-place.",
-        ),
-        verbose: Optional[bool] = typer.Option(  # TODO verbosity here
-            defaults.pow_register.verbose,
-            "--verbose",
-            "-v",
-            help="Whether to output the registration statistics verbosely.",
-        ),
-        use_cuda: Optional[bool] = typer.Option(
-            defaults.pow_register.cuda.use_cuda,
-            "--use-cuda/--no-use-cuda",
-            "--cuda/--no-cuda",
-            help="Set the flag to use CUDA for POW registration.",
-        ),
-        dev_id: Optional[int] = typer.Option(
-            defaults.pow_register.cuda.dev_id,
-            "--dev-id",
-            "-d",
-            help="Set the CUDA device id(s), in the order of the device speed (0 is the fastest).",
-        ),
-        threads_per_block: Optional[int] = typer.Option(
-            defaults.pow_register.cuda.tpb,
-            "--threads-per-block",
-            "-tbp",
-            help="Set the number of threads per block for CUDA.",
-        ),
+        processors: Optional[int] = Options.pow_register_processors,
+        update_interval: Optional[int] = Options.pow_register_update_interval,
+        output_in_place: Optional[bool] = Options.pow_register_output_in_place,
+        verbose: Optional[bool] = Options.pow_register_verbose,
+        use_cuda: Optional[bool] = Options.pow_register_use_cuda,
+        dev_id: Optional[int] = Options.pow_register_dev_id,
+        threads_per_block: Optional[int] = Options.pow_register_threads_per_block,
         prompt: bool = Options.prompt,
     ):
         """
@@ -7377,6 +7462,50 @@ class CLIManager:
 
         This command may be disabled by the subnet owner. For example, on netuid 1 this is permanently disabled.
         """
+        # Resolve values from config or defaults if not provided
+        if processors is None:
+            processors = (
+                self.config.get("pow_register_processors")
+                if self.config.get("pow_register_processors") is not None
+                else defaults.pow_register.num_processes
+            )
+        if update_interval is None:
+            update_interval = (
+                self.config.get("pow_register_update_interval")
+                if self.config.get("pow_register_update_interval") is not None
+                else defaults.pow_register.update_interval
+            )
+        if output_in_place is None:
+            output_in_place = (
+                self.config.get("pow_register_output_in_place")
+                if self.config.get("pow_register_output_in_place") is not None
+                else defaults.pow_register.output_in_place
+            )
+        if verbose is None:
+            verbose = (
+                self.config.get("pow_register_verbose")
+                if self.config.get("pow_register_verbose") is not None
+                else defaults.pow_register.verbose
+            )
+        if use_cuda is None:
+            use_cuda = (
+                self.config.get("pow_register_use_cuda")
+                if self.config.get("pow_register_use_cuda") is not None
+                else defaults.pow_register.cuda.use_cuda
+            )
+        if dev_id is None:
+            dev_id = (
+                self.config.get("pow_register_dev_id")
+                if self.config.get("pow_register_dev_id") is not None
+                else defaults.pow_register.cuda.dev_id
+            )
+        if threads_per_block is None:
+            threads_per_block = (
+                self.config.get("pow_register_threads_per_block")
+                if self.config.get("pow_register_threads_per_block") is not None
+                else defaults.pow_register.cuda.tpb
+            )
+
         return self._run_command(
             subnets.pow_register(
                 self.wallet_ask(
